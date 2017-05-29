@@ -11,7 +11,10 @@ app.listen(port);
 //eg:-> Input:-http://localhost:3000/list?q=asia
 
 app.get('/list', function (req, res) {
-    console.log("id",req.query.q)
+    if(!req.query.q){
+         res.status(200).send("parameter not found");
+         return;
+    }
     var newObj=getCountriesList(req.query.q);
     newObj
       .then(function (fulfilled) {
@@ -22,7 +25,7 @@ app.get('/list', function (req, res) {
       });
 })
 
-
+// metehod to get countries list name
 function getCountriesList(q) {
     var options={};
     options.method='GET';
@@ -48,15 +51,18 @@ function getCountriesList(q) {
 // eg:-> Input :- http://localhost:3000/list/asia/sort
 
 app.get('/list/:country/sort', function (req, res) {
+    // metehod to get countries list name
     var newObj=getCountriesList(req.params.country,true);
     newObj
       .then(function (fulfilled) {
          var arrList=[];
         var arr=fulfilled;
+        // Iterate countries name to find population
          for(let i=0;i<arr.length;i++){
             var options={};
             options.method='GET';
            var promiseArr= new Promise((resolve, reject) => {
+               // country detail Api
                 options.url="https://restcountries.eu/rest/v2/name/"+ arr[i];
                 request(options, function (error, response, body) {
                     var countryArr=[];
@@ -72,13 +78,16 @@ app.get('/list/:country/sort', function (req, res) {
                     resolve(countryArr);
                 });
         });    
+        // Added array of countries promises
         arrList.push(promiseArr);
          }
         Promise.all(arrList).then(values => { 
             var newArr=[]
+            // sort Array by population
             values.sort(function(a, b) {
                 return (a[0].population)-(b[0].population);
             });
+            // extract name key from Json object
             for (let i=0;i<values.length; i++) {
                if (values[i][0].hasOwnProperty("name")) {
                         newArr.push(values[i][0]["name"]); 
