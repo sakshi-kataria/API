@@ -8,6 +8,8 @@ var request=require("request");
 app.listen(port);
 
 
+//eg:-> Input:-http://localhost:3000/list?q=asia
+
 app.get('/list', function (req, res) {
     console.log("id",req.query.q)
     var newObj=getCountriesList(req.query.q);
@@ -30,11 +32,6 @@ function getCountriesList(q) {
         var countryArr=[];
         if (!error && response.statusCode === 200) {
              var data = JSON.parse(body);
-//            if(sort){
-//                data.sort(function(a, b) {
-//                    return (a.population)-(b.population);
-//                });
-//            }
             for (let i=0;i<data.length; i++) {
                if (data[i].hasOwnProperty("name")) {
                         countryArr.push(data[i]["name"]); 
@@ -47,40 +44,48 @@ function getCountriesList(q) {
       });
      });
 }
-var arrList=[];
+
+// eg:-> Input :- http://localhost:3000/list/asia/sort
+
 app.get('/list/:country/sort', function (req, res) {
     var newObj=getCountriesList(req.params.country,true);
     newObj
       .then(function (fulfilled) {
+         var arrList=[];
         var arr=fulfilled;
-       // console.log('arr',arr)
-        for(let i=0;i<arr.length;i++){
+         for(let i=0;i<arr.length;i++){
             var options={};
             options.method='GET';
-            options.url="https://restcountries.eu/rest/v2/name/"+ arr[i];
-            let a=new Promise((resolve, reject) => { 
-                    request(options, function (error, response, body) {
-                        var countryArr=[];
-                        if (!error && response.statusCode === 200) {
-                            var data = JSON.parse(body);
-                            if (data[0].hasOwnProperty("name")) {
-                                countryArr.push({"name":data[0]["name"],"population":data[0]["population"]}); 
-                            }
+           var promiseArr= new Promise((resolve, reject) => {
+                options.url="https://restcountries.eu/rest/v2/name/"+ arr[i];
+                request(options, function (error, response, body) {
+                    var countryArr=[];
+                    if (!error && response.statusCode === 200) {
+                        var data = JSON.parse(body);
+                        if (data[0].hasOwnProperty("name")) {
+                            countryArr.push({"name":data[0]["name"],"population":data[0]["population"]}); 
                         }
-                     else {
-                            reject(error);
-                        }
-                        resolve(countryArr);
-                    });
-                })
-//            consol.log(a);
-            arrList.push[a]
-        }
-        console.log(arrList);
+                    }
+                    else {
+                        reject(error);
+                    }
+                    resolve(countryArr);
+                });
+        });    
+        arrList.push(promiseArr);
+         }
         Promise.all(arrList).then(values => { 
-            console.log('test',values); // [3, 1337, "foo"] 
+            var newArr=[]
+            values.sort(function(a, b) {
+                return (a[0].population)-(b[0].population);
+            });
+            for (let i=0;i<values.length; i++) {
+               if (values[i][0].hasOwnProperty("name")) {
+                        newArr.push(values[i][0]["name"]); 
+                }
+            }
+            res.status(200).send(newArr)
         });
-//        res.status(200).send(fulfilled);
       })
       .catch(function (reject) {
          res.status(400).send(reject);
